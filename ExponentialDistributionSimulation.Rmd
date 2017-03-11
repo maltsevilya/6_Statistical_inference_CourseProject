@@ -1,0 +1,44 @@
+---
+title: "Exponential distribution simulation"
+author: "Ilya Maltsev"
+date: 'March 10, 2017'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Simulations
+
+```{r, load libraries, echo=FALSE}
+library(ggplot2)
+```
+
+```{r, common settings}
+lambda <- 0.2
+sim_count <- 1000
+sample_size <- 40
+
+seed = 12345678
+set.seed(seed)
+```
+
+```{r, generate random numbers}
+sim_data <- matrix(rexp(sim_count * sample_size, lambda), 
+                   nrow = sim_count, ncol = sample_size)
+```
+
+```{r, evaluate means in each sampling}
+samplingMeans <- apply(sim_data, 1, mean)
+```
+
+```{r, evaluate mean by samplings}
+sim_mean <- mean(samplingMeans)
+sim_variance <- var(samplingMeans)
+sim_sd <- sd(samplingMeans)
+```
+
+```{r, plot sampling means histogram}
+ggplot() + aes(x = samplingMeans) + geom_histogram(bins = 30)
+```
