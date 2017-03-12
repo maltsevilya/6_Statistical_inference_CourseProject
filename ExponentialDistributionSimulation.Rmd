@@ -1,44 +1,115 @@
 ---
-title: "Exponential distribution simulation"
+title: "Investigation of exponential distribution by simulation"
 author: "Ilya Maltsev"
-date: 'March 10, 2017'
-output: html_document
+date: "March 10, 2017"
+output:
+  html_document: default
+  # pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Overview
+
+The project is focused on simulation and properties of mean of several IID exponentials. Sample mean and sample variance of the mean are presented and compared to the theoretical ones.
+
 ## Simulations
 
-```{r, load libraries, echo=FALSE}
+R libraries for the simulation and the presentation:
+```{r, load libraries, results='hide'}
 library(ggplot2)
 ```
 
-```{r, common settings}
-lambda <- 0.2
-sim_count <- 1000
-sample_size <- 40
+Consider [exponential distribution](https://en.wikipedia.org/wiki/Exponential_distribution) $f(x)=\lambda e^{-\lambda x}$. Its population mean is $\frac{1}{\lambda}$ and standard deviation is $\frac{1}{\lambda}$.
 
-seed = 12345678
+Following parameters are used for the simulation:
+```{r, common settings}
+lambda <- 0.2 # Rate parameter (the distribution parameter)
+sample_size <- 40 # Number of exponentials to build an average variable
+sim_count <- 1000 # Number of averages for the simulation
+
+# Random number generator is used. It need to set random seed explicitly for full replicability
+seed = 234567890
 set.seed(seed)
 ```
 
-```{r, generate random numbers}
+Let's generate random numbers using exponential distribution (_rexp_ R function), fill `r sim_count` samplings and evaluate mean in each sampling:
+```{r, generate samplings}
 sim_data <- matrix(rexp(sim_count * sample_size, lambda), 
                    nrow = sim_count, ncol = sample_size)
+sampling_averages <- apply(sim_data, 1, mean)
 ```
 
-```{r, evaluate means in each sampling}
-samplingMeans <- apply(sim_data, 1, mean)
+## Results
+
+### Sample Mean versus Theoretical Mean
+
+Sample mean could be evaluated as a mean of sampling averages:
+
+```{r, evaluate sample mean}
+sample_mean <- mean(sampling_averages)
+sample_mean
 ```
 
-```{r, evaluate mean by samplings}
-sim_mean <- mean(samplingMeans)
-sim_variance <- var(samplingMeans)
-sim_sd <- sd(samplingMeans)
+Theoretical (population) mean for exponential distribution is:
+```{r, evaluate theoretical mean}
+theor_mean <- 1/lambda
+theor_mean
 ```
 
-```{r, plot sampling means histogram}
-ggplot() + aes(x = samplingMeans) + geom_histogram(bins = 30)
+The sample mean is pretty close to the theoretical one, the difference is `r abs(sample_mean - theor_mean)` and just `r abs(sample_mean - theor_mean)/sample_mean*100`% of theoretical mean.
+
+### Sample Variance versus Theoretical Variance
+
+Sample variance of a mean could be obtained from simulation data as:
+
+```{r, evaluate sample variance}
+sample_variance <- var(sampling_averages)
+sample_variance
 ```
+
+Theoretical (population) variance is:
+```{r, evaluate theoretical variance}
+theor_variance <- (1/lambda)^2/sample_size
+theor_variance
+```
+
+The sample variance is pretty close to the theoretical one, the difference is `r abs(sample_variance - theor_variance)` and just `r abs(sample_variance - theor_variance)/sample_variance*100`% of theoretical variance.
+
+### Distribution
+
+Number of samplings is large so a distibution of sampling averages must follow normal distribution according to [Central Limit Theorem](https://en.wikipedia.org/wiki/Central_limit_theorem).
+
+```{r, plot sampling means distribution}
+ggplot() + 
+    aes(x = sampling_averages) + 
+    geom_histogram(bins = 50, alpha = .20, 
+                   colour = "black", aes(y = ..density..)) + 
+    stat_function(fun = dnorm, colour = "red", 
+                  args = list(mean = theor_mean, 
+                              sd = sqrt(theor_variance))) +
+    geom_vline(xintercept = sample_mean, colour = "blue") +
+    xlab("Sampling averages from simulation") + 
+    ylab("Density") + 
+    ggtitle("Distribution of sampling averages versus normal distribution")
+```
+
+The sample distribution looks like a normal distribution. 
+
+```{r, q-q plot}
+sample_distribution_quartiles <- quantile(sampling_averages, c(0.25, 0.75))
+normal_distribution_quartiles <- qnorm(c(0.25, 0.75))
+slope <- diff(sample_distribution_quartiles)/diff(normal_distribution_quartiles)
+ggplot(data.frame(sampling_averages = sampling_averages)) + 
+    stat_qq(aes(sample = sampling_averages)) + 
+    geom_abline(slope = slope, intercept = theor_mean) + 
+    ggtitle("Quantile-quantile plot comparing sample distribution to normal distribution")
+```
+
+The Q-Q plot shows that sample quantiles corresponds to normal distribution quantiles closely.
+
+## Conclusion
+
+The simulation shows that considered population properties (mean and variance) are very close to theoretical ones. The simulated distribution of averages of exponentials is close to normal distribution. This is proved by quantile-quantile plot for the simulated distribution.
