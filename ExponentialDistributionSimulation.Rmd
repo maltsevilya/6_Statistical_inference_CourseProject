@@ -3,8 +3,8 @@ title: "Investigation of exponential distribution by simulation"
 author: "Ilya Maltsev"
 date: "March 10, 2017"
 output:
+  pdf_document: default
   html_document: default
-  # pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -30,7 +30,8 @@ lambda <- 0.2 # Rate parameter (the distribution parameter)
 sample_size <- 40 # Number of exponentials to build an average variable
 sim_count <- 1000 # Number of averages for the simulation
 
-# Random number generator is used. It need to set random seed explicitly for full replicability
+# Random number generator is used. It need to set random seed explicitly 
+# for full replicability
 seed = 234567890
 set.seed(seed)
 ```
@@ -82,34 +83,35 @@ The sample variance is pretty close to the theoretical one, the difference is `r
 
 Number of samplings is large so a distibution of sampling averages must follow normal distribution according to [Central Limit Theorem](https://en.wikipedia.org/wiki/Central_limit_theorem).
 
-```{r, plot sampling means distribution}
-ggplot() + 
-    aes(x = sampling_averages) + 
+```{r, plot sampling means distribution, fig.width=6, fig.height=4, echo=FALSE}
+ggplot() + aes(x = sampling_averages) + 
     geom_histogram(bins = 50, alpha = .20, 
                    colour = "black", aes(y = ..density..)) + 
     stat_function(fun = dnorm, colour = "red", 
-                  args = list(mean = theor_mean, 
-                              sd = sqrt(theor_variance))) +
+                  args = list(mean = theor_mean, sd = sqrt(theor_variance))) +
     geom_vline(xintercept = sample_mean, colour = "blue") +
-    xlab("Sampling averages from simulation") + 
-    ylab("Density") + 
-    ggtitle("Distribution of sampling averages versus normal distribution")
+    xlab("Sampling averages from simulation") + ylab("Density") + 
+    ggtitle("Sampling averages distribution versus normal distribution")
 ```
 
 The sample distribution looks like a normal distribution. 
 
-```{r, q-q plot}
+```{r, q-q plot, fig.width=6, fig.height=4}
 sample_distribution_quartiles <- quantile(sampling_averages, c(0.25, 0.75))
 normal_distribution_quartiles <- qnorm(c(0.25, 0.75))
 slope <- diff(sample_distribution_quartiles)/diff(normal_distribution_quartiles)
 ggplot(data.frame(sampling_averages = sampling_averages)) + 
     stat_qq(aes(sample = sampling_averages)) + 
     geom_abline(slope = slope, intercept = theor_mean) + 
-    ggtitle("Quantile-quantile plot comparing sample distribution to normal distribution")
+    ggtitle("Q-Q plot comparing sample distribution to normal distribution")
 ```
 
-The Q-Q plot shows that sample quantiles corresponds to normal distribution quantiles closely.
+The Quantile-Quantile plot shows that sample quantiles corresponds 
+to normal distribution quantiles closely.
 
 ## Conclusion
 
-The simulation shows that considered population properties (mean and variance) are very close to theoretical ones. The simulated distribution of averages of exponentials is close to normal distribution. This is proved by quantile-quantile plot for the simulated distribution.
+The simulation shows that considered population properties (mean and variance) 
+are very close to theoretical ones. The simulated distribution of averages 
+of exponentials is close to normal distribution. This is proved 
+by quantile-quantile plot for the simulated distribution.
