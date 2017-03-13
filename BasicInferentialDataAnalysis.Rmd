@@ -1,0 +1,125 @@
+---
+title: 'The Vitamin C intake of the Guinea Pig: data analysis'
+author: "Ilya Maltsev"
+date: "March 13, 2017"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+The Vitamin C intake of the Guinea Pig can be observed by the growth 
+of the odontoblasts of the incisor tooth 
+([original paper](http://jn.nutrition.org/content/33/5/491.full.pdf)). 
+[The observed dataset](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/ToothGrowth.html) contains measured length of odontoblasts for one of three dose 
+levels by one of two delivery methods. The project focuses on comparing 
+length versus dose and supplement. 
+
+It is proved that the bigger is dose the larger is length for any supplement.
+'Orange juice' supplement results in larger length for the doses 0.5 and 1, 
+no significant difference is found for the dose 2.
+
+## Data processing
+
+Requred libraries:
+```{r, load libraries, results='hide'}
+library(datasets)
+library(ggplot2)
+library(dplyr, warn.conflicts = FALSE)
+```
+
+Load the data:
+```{r, load the data}
+data("ToothGrowth")
+ToothGrowth <- tbl_df(ToothGrowth)
+```
+
+### Basic summary
+
+```{r, missed values}
+table(is.na.data.frame(ToothGrowth))
+```
+There are no missed values in the data.
+
+Basic properties of the data:
+```{r, basic summary}
+summary(ToothGrowth)
+```
+
+Number of available observations of 'orange juice' delivery method is `r table(ToothGrowth$supp)["OJ"]` and `r table(ToothGrowth$supp)["VC"]` 
+for 'vitamin c' delivery method
+
+### Exploratory analysis
+
+```{r, sample distribution of length, echo=FALSE}
+ggplot(ToothGrowth, aes(x = len)) + 
+    geom_histogram(bins = 20, alpha = 0.2, colour = "black") + 
+    facet_grid(dose ~ supp) +
+    ggtitle("Length distribution for given dose and supplement")
+```
+
+It is obvious from the plot that the dose affects the length, the bigger 
+is dose the larger is length. The distribution of lengths given dose and 
+supplement does not seem to match any known distribution.
+
+Assume the lengths follow to normal distribution (null hypothesis). Number 
+of observations is small so the hypothesis can be verified by [Shapiro–Wilk test](https://en.wikipedia.org/wiki/Shapiro%E2%80%93Wilk_test). Try to reject 
+the null hypothesis given an $\alpha$ level of 0.05.
+
+```{r, shapiro-wilk test}
+alpha <- 0.05
+# if reject = FALSE then we failed to reject
+ToothGrowth %>% group_by(supp, dose) %>%
+    summarise(pvalue = shapiro.test(len)$p.value, reject = pvalue <= alpha)
+```
+
+We failed to reject the hypothesis for all combinations of supplement and dose.
+It means we can assume that the lengths distribution is normal.
+
+## Dosage and supplement effect
+
+Let the null hypothesis is some (supp2, dose2) combination has greater effect 
+than some other combination (supp1, dose1). Let the probability of rejection 
+($\alpha$, Type 1 error rate) is 0.05. We would reject the null hypothesis 
+if right bound of confidence interval is greater than zero or if p-value is 
+greater than $\alpha$.
+
+```{r, dosage test}
+alpha <- 0.05
+data_frame(dose1 = c(0.5,  1,    0.5,  1,    0.5,  1,    2),
+           dose2 = c(1,    2,    1,    2,    0.5,  1,    2),
+           supp1 = c("OJ", "OJ", "VC", "VC", "VC", "VC", "VC"),
+           supp2 = c("OJ", "OJ", "VC", "VC", "OJ", "OJ", "OJ")) %>%
+    rowwise() %>% # evaluate by row
+    mutate(htest = list(t.test(
+        y = (ToothGrowth %>% filter(supp == supp2) %>% filter(dose == dose2))$len,
+        x = (ToothGrowth %>% filter(supp == supp1) %>% filter(dose == dose1))$len,
+        alternative = "less", paired = FALSE, 
+        var.equal = FALSE, conf.level = 1 - alpha))) %>% # run test
+    mutate(pvalue = htest$p.value) %>% # extract p-value
+    mutate(left = htest[[4]][1]) %>% # extract left bound of conf.int
+    mutate(right = htest[[4]][2]) %>% # extract right bound of conf.int
+    mutate(reject = pvalue > alpha | right > 0) %>% # make a decision
+    select(-htest)
+```
+
+The test shows that increasing of the dose given a supplement results in 
+increasing of the length in all cases. Length effect of 'orange juice' 
+supplement is bigger than 'vitamin c' one for the doses 0.5 and 1. 
+The test cannot distinguish length effect of the supplements for dose equal 
+to 2 for given level of significance.
+
+## Conclusion
+
+The distribution of length given supplement and dose can be assumed normal with
+the significance level $\alpha = 0.5$. This is proved by Shapiro-Wilk test.
+
+T confidence interval test shows the bigger is dose the larger is length and 
+'orange juice' supplement results in larger length for the doses 0.5 and 1.
+Significance level is $\alpha = 0.5$. No significant difference is found 
+for the dose 2.

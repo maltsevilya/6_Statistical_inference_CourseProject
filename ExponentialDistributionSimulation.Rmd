@@ -96,7 +96,7 @@ ggplot() + aes(x = sampling_averages) +
 
 The sample distribution looks like a normal distribution. 
 
-```{r, q-q plot, fig.width=6, fig.height=4}
+```{r, q-q plot, fig.width=6, fig.height=4, echo=FALSE}
 sample_distribution_quartiles <- quantile(sampling_averages, c(0.25, 0.75))
 normal_distribution_quartiles <- qnorm(c(0.25, 0.75))
 slope <- diff(sample_distribution_quartiles)/diff(normal_distribution_quartiles)
